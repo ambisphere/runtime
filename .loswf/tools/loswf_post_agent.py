@@ -1,4 +1,34 @@
 #!/usr/bin/env python3
+# =====================================================================
+# LOCAL-OVERRIDE — DO NOT BLINDLY OVERWRITE ON PLUGIN UPGRADE
+# ---------------------------------------------------------------------
+# This file is the plugin-managed shared reconciler, **but** this host
+# repo (ambisphere/runtime) has been customized for `mode: greenfield`
+# in .loswf/config.yaml. The greenfield additions are:
+#
+#   * post_intake routes every type to `researching` when the issue
+#     lacks a <!-- loswf:research:complete --> marker comment.
+#   * NEW dispatcher `post_researcher` (loswf-researcher): on a
+#     <!-- loswf:research:complete --> comment, route → `product`.
+#   * NEW dispatcher `post_product` (loswf-product): on a
+#     <!-- loswf:product:prd-v1 --> or <!-- loswf:product:signoff -->
+#     comment, route → `planning` (feature) or `decomposing`
+#     (bug / chore / refactor / docs).
+#   * post_investigator in greenfield routes a CONFIRMED bug/spike
+#     through `product` first (not straight to `decomposing`) so even
+#     technical spikes pass a product gate.
+#
+# All greenfield branches are gated on `_router_mode() == "greenfield"`
+# so a future plugin upgrade that uses git's three-way merge will see
+# the unmodified `standard` paths intact.
+#
+# Re-applying this override after a plugin refresh:
+#   - Look for the three GREENFIELD blocks below (search "GREENFIELD").
+#   - Re-apply them on top of the upstream file.
+#   - Ensure `loswf-researcher` and `loswf-product` remain in DISPATCH.
+#
+# See .loswf/plugin-managed for the override pin record.
+# =====================================================================
 """Stop / SubagentStop hook — deterministic factory:phase transitions.
 
 After each agent run (ADW-driven or interactive Task-tool invocation),
@@ -155,6 +185,63 @@ def emit(phase, issue, agent, outcome, details=None):
 
 INVESTIGATING_TYPES = ("bug", "spike", "investigate")
 
+# --- GREENFIELD: router mode + research/product markers -----------------
+# `mode: greenfield` in .loswf/config.yaml inserts a research → product
+# gate ahead of planning/decomposing so concept-stage repos can't skip
+# discovery. See the LOCAL-OVERRIDE banner at the top of this file.
+RESEARCH_COMPLETE_MARKER = "<!-- loswf:research:complete -->"
+PRODUCT_PRD_V1_MARKER = "<!-- loswf:product:prd-v1 -->"
+PRODUCT_SIGNOFF_MARKER = "<!-- loswf:product:signoff -->"
+
+# Types that need a plan after product sign-off; everything else
+# (bug/chore/refactor/docs) skips planning and goes straight to
+# decomposing.
+PLANNING_TYPES = ("feature",)
+
+
+def _router_mode() -> str:
+    """Return `mode:` from .loswf/config.yaml, default `standard`."""
+    try:
+        for raw in CONFIG_PATH.read_text().splitlines():
+            line = raw.split("#", 1)[0].strip()
+            if not line or not line.startswith("mode:"):
+                continue
+            value = line.split(":", 1)[1].strip().strip('"').strip("'")
+            return value or "standard"
+    except Exception:
+        pass
+    return "standard"
+
+
+def _issue_types(issue) -> list[str]:
+    """Return all `factory:type:*` suffixes on the issue."""
+    data = gh_json(["issue", "view", str(issue), "--json", "labels"]) or {}
+    return [
+        l["name"].split(":")[-1]
+        for l in data.get("labels", [])
+        if l["name"].startswith("factory:type:")
+    ]
+
+
+def _has_marker(issue, marker: str) -> bool:
+    """True iff any comment on the issue contains `marker`."""
+    data = gh_json(["issue", "view", str(issue), "--json", "comments"]) or {}
+    for c in data.get("comments", []):
+        if marker in (c.get("body") or ""):
+            return True
+    return False
+
+
+def _route_after_product(issue, types: list[str]):
+    """Greenfield post-product routing: planning for features,
+    decomposing otherwise."""
+    if any(t in PLANNING_TYPES for t in types):
+        set_phase(issue, "planning")
+        return ("planning", "product-signoff")
+    set_phase(issue, "decomposing")
+    return ("decomposing", "product-signoff")
+# --- END GREENFIELD additions -------------------------------------------
+
 
 def post_intake(issue):
     data = gh_json(["issue", "view", str(issue), "--json", "labels"]) or {}
@@ -165,11 +252,61 @@ def post_intake(issue):
     if not types:
         add_label(issue, "factory:status:needs-clarification")
         return ("triage", "missing-type")
+    # --- GREENFIELD: insert research gate ahead of every type unless the
+    # issue already carries a research-complete marker. Investigation-type
+    # issues still bypass to `investigating` because they need
+    # reproduction first; their post-investigator transition is the one
+    # that picks up the product gate (see post_investigator below).
+    if _router_mode() == "greenfield":
+        if any(t in INVESTIGATING_TYPES for t in types):
+            set_phase(issue, "investigating")
+            return ("investigating", "ok")
+        if not _has_marker(issue, RESEARCH_COMPLETE_MARKER):
+            set_phase(issue, "researching")
+            return ("researching", "greenfield-research-gate")
+        # Research already complete (e.g. re-triaged issue) — fall through
+        # to the post-product router so the product gate still applies.
+        set_phase(issue, "product")
+        return ("product", "greenfield-product-gate")
+    # --- END GREENFIELD ---
     if any(t in INVESTIGATING_TYPES for t in types):
         set_phase(issue, "investigating")
         return ("investigating", "ok")
     set_phase(issue, "planning")
     return ("planning", "ok")
+
+
+# --- GREENFIELD: research synthesis dispatcher --------------------------
+def post_researcher(issue):
+    """Greenfield-only: researcher synthesizes findings → route to
+    `product`. Requires <!-- loswf:research:complete --> on the issue."""
+    if _router_mode() != "greenfield":
+        # No-op outside greenfield; researcher is not part of the standard
+        # pipeline. Surface to a human if invoked unexpectedly.
+        add_label(issue, "factory:status:needs-attention")
+        return ("researching", "researcher-outside-greenfield")
+    if _has_marker(issue, RESEARCH_COMPLETE_MARKER):
+        set_phase(issue, "product")
+        return ("product", "research-complete")
+    add_label(issue, "factory:status:needs-attention")
+    return ("researching", "no-research-complete-marker")
+
+
+# --- GREENFIELD: product sign-off dispatcher ----------------------------
+def post_product(issue):
+    """Greenfield-only: product agent posts PRD-v1 or sign-off → route to
+    `planning` (feature) or `decomposing` (anything else)."""
+    if _router_mode() != "greenfield":
+        add_label(issue, "factory:status:needs-attention")
+        return ("product", "product-outside-greenfield")
+    if (
+        _has_marker(issue, PRODUCT_PRD_V1_MARKER)
+        or _has_marker(issue, PRODUCT_SIGNOFF_MARKER)
+    ):
+        return _route_after_product(issue, _issue_types(issue))
+    add_label(issue, "factory:status:needs-attention")
+    return ("product", "no-prd-or-signoff-marker")
+# --- END GREENFIELD dispatchers -----------------------------------------
 
 
 INVESTIGATION_CONFIRMED = "<!-- loswf:investigation:confirmed -->"
@@ -183,6 +320,15 @@ def post_investigator(issue):
     for c in reversed(comments):
         body = c.get("body") or ""
         if INVESTIGATION_CONFIRMED in body:
+            # --- GREENFIELD: route confirmed investigations through the
+            # product gate first so even technical spikes get a product
+            # decision before decomposition. If research was already done
+            # by an earlier pass, the issue may carry a research-complete
+            # marker — still route to `product`, never skip the gate.
+            if _router_mode() == "greenfield":
+                set_phase(issue, "product")
+                return ("product", "confirmed-greenfield-product-gate")
+            # --- END GREENFIELD ---
             set_phase(issue, "decomposing")
             return ("decomposing", "confirmed")
         if INVESTIGATION_NOT_REPRO in body:
@@ -205,6 +351,16 @@ def post_investigator(issue):
                     ],
                     capture_output=True,
                 )
+                # --- GREENFIELD: re-typed issue picks up the same gates
+                # as a fresh intake; route to `researching` unless
+                # research is already complete.
+                if _router_mode() == "greenfield":
+                    if _has_marker(issue, RESEARCH_COMPLETE_MARKER):
+                        set_phase(issue, "product")
+                        return ("product", f"retyped-{new_type}")
+                    set_phase(issue, "researching")
+                    return ("researching", f"retyped-{new_type}")
+                # --- END GREENFIELD ---
                 set_phase(issue, "planning")
                 return ("planning", f"retyped-{new_type}")
     add_label(issue, "factory:status:needs-attention")
@@ -404,6 +560,9 @@ DISPATCH = {
     "loswf-reviewer":      post_reviewer,
     "loswf-ship":          post_ship,
     "loswf-documenter":    post_documenter,
+    # GREENFIELD-only dispatchers — guarded internally by _router_mode().
+    "loswf-researcher":    post_researcher,
+    "loswf-product":       post_product,
     # loswf-architect, loswf-harvester, loswf-curator, loswf-designer,
     # loswf-escalation, loswf-red-team, loswf-scout, loswf-setup — no transition.
     # (Setup configures the host repo itself; it is not a pipeline phase.)
