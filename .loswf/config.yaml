@@ -6,12 +6,6 @@ project: ambisphere-runtime
 repo: ambisphere/runtime
 branch: main
 
-# Router mode. `greenfield` inserts a research → product gate before
-# planning/decomposing so concept-stage repos can't skip discovery.
-# Honored by .loswf/tools/loswf_post_agent.py (locally overridden — see
-# the LOCAL-OVERRIDE banner at the top of that file).
-mode: greenfield
-
 description: >
   Open ambient runtime for persistent entities, local agents, and operational
   presence. Currently at concept/RFP stage — the factory's primary output is

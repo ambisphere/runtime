@@ -1,25 +1,2 @@
 managed-by: loswf2 plugin
 installed: 20260520-181305
-
-# ---------------------------------------------------------------------
-# LOCAL OVERRIDES — re-apply after any `/loswf:update` plugin refresh
-# ---------------------------------------------------------------------
-# When `/loswf:update` (or a manual rerun of bin/install-project-scope.sh)
-# overwrites the files below, re-apply these customisations before
-# running the factory:
-#
-#   .loswf/tools/loswf_post_agent.py
-#     Greenfield router override. Adds `mode: greenfield` handling so
-#     intake → researching → product → planning|decomposing instead of
-#     intake → planning. Look for the LOCAL-OVERRIDE banner at the top
-#     of the file and the four `GREENFIELD` blocks. Registers two extra
-#     DISPATCH entries: `loswf-researcher`, `loswf-product`.
-#
-#   .loswf/config.yaml
-#     `mode: greenfield` toggle. Drives the override above. Drop this
-#     line and the router falls back to the upstream `standard` paths.
-#
-# Rationale: ambisphere/runtime is concept/RFP stage. The standard
-# router skips research and product discovery, which is wrong here —
-# every issue needs a research pass and a product decision before it
-# can be planned or decomposed.
