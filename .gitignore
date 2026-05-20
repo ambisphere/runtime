@@ -16,4 +16,7 @@ Thumbs.db
 .env
 .env.local
 .loswf/state/
+.loswf/tools/__pycache__/
 *.bak.*
+__pycache__/
+*.pyc

@@ -10,22 +10,25 @@ description: >
   One paragraph describing what this repo does and what kind of work the
   factory should handle for it. Injected into every agent's context.
 
-# Per-role model selection. Defaults inherit the Claude Code session model.
-# Set explicitly only when a role needs a different model (e.g. haiku for scout).
-models:
-  intake: sonnet
-  planner: sonnet
-  plan_reviewer: sonnet
-  builder: sonnet
-  reviewer: sonnet
-  escalation: sonnet
-  harvester: sonnet
-  curator: sonnet
-  architect: sonnet
-  designer: sonnet
-  scout: haiku
-  red_team: sonnet
-  documenter: sonnet
+# Per-role speed/effort tier — runtime-neutral. Runtime adapters resolve
+# each tier to a concrete model locally (Claude: fast→haiku, default→sonnet,
+# deep→opus; Codex: maps tiers to model_reasoning_effort low/medium/high).
+# Tiers: fast | default | deep. Absent roles inherit the runtime default.
+# See docs/designs/runtime-neutral-config-migration.md for the mapping tables.
+model_policy:
+  intake: default
+  planner: default
+  plan_reviewer: default
+  builder: default
+  reviewer: default
+  escalation: default
+  harvester: default
+  curator: default
+  architect: default
+  designer: default
+  scout: fast
+  red_team: default
+  documenter: default
 
 # Validation commands the builder and reviewer MUST run before declaring done.
 # Order matters — fastest first, slowest last (fail fast).
@@ -62,17 +65,58 @@ curator:
   # checks mtime of .loswf/state/curator.last_run against this value.
   cadence_hours: 1
 
-# Optional semantic code index (off by default).
-index:
-  enabled: false
-  top_k: 10
+# Required semantic code index (see specs/SRS.md §4.7). Factory refuses to run without it.
+code_search:
+  collection: <repo-name>-symbols
   paths: [src/, specs/, docs/]
   exclude: ["*.test.ts", "node_modules/", "dist/"]
+  provider: qdrant-ollama
+  qdrant_url: http://127.0.0.1:6333
+  ollama_url: http://127.0.0.1:11434
+  embed_model: mxbai-embed-large
 
 # Worktree concurrency cap for sweep parallelism.
 sweep:
   max_concurrent_builds: 3
   cycle_interval_minutes: 5
+  # Short sleep between cycles while any issue is still queued in an active
+  # phase. Default 30. Set 0 to skip sleep while busy.
+  min_interval_sec: 30
+  # Native TTS announcements via adws/tts_announce.sh. Silent by default;
+  # set LOSWF_SPEAK=1 in the environment for ad-hoc audible announcements.
+  speak: false
+  # Declarative phase sequence — the order adw_sweep.sh walks each cycle.
+  # Schema (design: docs/designs/curator-harvester-sequencing-remediation.md §4):
+  #   name              — stable identifier, also the label phase in most cases.
+  #   kind              — subagent | bash | command.
+  #   agent             — subagent name (when kind=subagent).
+  #   mode              — subagent mode flag (e.g. curator triage vs steward).
+  #   handler           — bash function to dispatch (when kind=bash).
+  #   command           — slash command to run (when kind=command).
+  #   enabled           — false disables the step without deleting it.
+  #   parallel          — { max: N } allows N concurrent worktrees for this phase.
+  #   idle_gated        — run only when earlier phases did no work this cycle.
+  #   cadence_hours     — minimum hours between runs (uses .loswf/state timestamps).
+  #   counts_as_work    — whether a successful run counts toward sweep "progress".
+  #                       idle_gated steps MUST have counts_as_work: false (design §5.1).
+  sequence:
+    # Disabled because loswf-curator currently defines safe-ops, proposals,
+    # escalation, and steward behavior, but no explicit triage-mode contract.
+    # Tracking rationale: draft plan #110.
+    - { name: triage,            kind: subagent, agent: curator, mode: triage,  enabled: false, counts_as_work: true }
+    - { name: intake,            kind: subagent, agent: intake,                 counts_as_work: true }
+    - { name: investigating,     kind: subagent, agent: investigator,           counts_as_work: true }
+    - { name: planning,          kind: subagent, agent: planner,   counts_as_work: true }
+    - { name: plan-review,       kind: subagent, agent: plan-reviewer,          counts_as_work: true }
+    - { name: decomposing,       kind: subagent, agent: decomposer,             counts_as_work: true }
+    - { name: building,          kind: subagent, agent: builder,   parallel: { max: 3 }, counts_as_work: true }
+    - { name: awaiting-children, kind: bash,     handler: promote_rollup_if_ready, counts_as_work: true }
+    - { name: review,            kind: subagent, agent: reviewer,               counts_as_work: true }
+    - { name: ship,              kind: command,  command: /loswf:ship,          counts_as_work: true }
+    - { name: rollup,            kind: subagent, agent: documenter,             counts_as_work: true }
+    - { name: escalation,        kind: subagent, agent: curator,   mode: escalation, counts_as_work: true }
+    - { name: harvest,           kind: subagent, agent: harvester, idle_gated: true,  counts_as_work: false }
+    - { name: curator-steward,   kind: subagent, agent: curator, mode: steward, idle_gated: true, cadence_hours: 1, counts_as_work: false }
 
 # Grounded external review — optional OpenAI Responses API call from the
 # plan-reviewer agent that cross-checks plans against current public

@@ -2,7 +2,7 @@
 # Factory-aware status line.
 #
 # Segments (left→right):
-#   [Model] cwd | 🌿branch | 🏭 <phase or idle> | ▶ <subagent Ns> | ctx N% | $X.XX
+#   [Model] cwd | 🌿branch | ⚙️ <phase or idle> | ▶ <subagent Ns> | ctx N% | $X.XX
 #
 # Cheap sources only: reads .loswf/state/ ledgers and git. The factory issue
 # counts are cached to `.loswf/state/statusline_counts.json` with a 60s TTL so
@@ -138,9 +138,9 @@ fmt_tokens() {
 LINE="[${C_CYAN}${MODEL}${C_RESET}] ${CWD##*/}"
 [ -n "$BRANCH" ] && LINE="$LINE ${C_DIM}|${C_RESET} 🌿${BRANCH}"
 if [ -n "$PHASES" ]; then
-  LINE="$LINE ${C_DIM}|${C_RESET} 🏭 ${C_GREEN}${PHASES}${C_RESET}"
+  LINE="$LINE ${C_DIM}|${C_RESET} ⚙️ ${C_GREEN}${PHASES}${C_RESET}"
 elif [ -n "$REPO" ]; then
-  LINE="$LINE ${C_DIM}|${C_RESET} 🏭 ${C_DIM}idle${C_RESET}"
+  LINE="$LINE ${C_DIM}|${C_RESET} ⚙️ ${C_DIM}idle${C_RESET}"
 fi
 if [ -n "$ACTIVE" ]; then
   LINE="$LINE ${C_DIM}|${C_RESET} ${C_MAGENTA}▶ ${ACTIVE} ${ACTIVE_AGE}${C_RESET}"
