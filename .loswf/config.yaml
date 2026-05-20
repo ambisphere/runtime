@@ -76,11 +76,11 @@ curator:
   # checks mtime of .loswf/state/curator.last_run against this value.
   cadence_hours: 12
 
-# Optional semantic code index (off by default).
+# Optional semantic code index — enabled for specs+docs (no source code yet).
 index:
-  enabled: false
+  enabled: true
   top_k: 10
-  paths: [src/, specs/, docs/]
+  paths: [specs/, docs/]
   exclude: ["*.test.ts", "node_modules/", "dist/"]
 
 # Worktree concurrency cap for sweep parallelism.
