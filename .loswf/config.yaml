@@ -1,0 +1,106 @@
+# loswf2 factory configuration — copy to `.loswf/config.yaml` in any host repo and edit.
+# Schema reference: specs/SRS.md §4.7
+
+version: 2
+project: ambisphere-runtime
+repo: ambisphere/runtime
+branch: main
+
+description: >
+  Open ambient runtime for persistent entities, local agents, and operational
+  presence. Currently at concept/RFP stage — the factory's primary output is
+  specs, research notes, and proposals exploring the runtime model rather than
+  production code. Renderer-agnostic, platform-agnostic, persona-agnostic,
+  local-first.
+
+# Per-role model selection. Defaults inherit the Claude Code session model.
+# Set explicitly only when a role needs a different model (e.g. haiku for scout).
+models:
+  intake: sonnet
+  planner: sonnet
+  plan_reviewer: sonnet
+  builder: sonnet
+  reviewer: sonnet
+  escalation: sonnet
+  harvester: sonnet
+  curator: sonnet
+  architect: sonnet
+  designer: sonnet
+  scout: haiku
+  red_team: sonnet
+  documenter: sonnet
+
+# Validation commands the builder and reviewer MUST run before declaring done.
+# Order matters — fastest first, slowest last (fail fast).
+#
+# This repo is specs-first (concept/RFP stage) — gates are doc-shape checks,
+# not code tests. Each gate is opt-in: if the underlying tool is not on PATH,
+# the gate logs a skip and exits 0 so the factory can still close work.
+# To enable strict gating, install the tool and the guard becomes active
+# automatically. Install hints live in specs/VISION.md.
+validate:
+  - name: spec-presence
+    run: "test -f specs/VISION.md && test -f specs/SRS.md"
+  - name: markdown-lint
+    run: "if command -v markdownlint >/dev/null 2>&1; then markdownlint README.md RFP.md specs docs; else echo '[skip] markdownlint not installed — brew install markdownlint-cli'; fi"
+  - name: link-check
+    run: "if command -v lychee >/dev/null 2>&1; then lychee --no-progress --offline README.md RFP.md specs docs; else echo '[skip] lychee not installed — brew install lychee'; fi"
+
+# Repo-specific rules injected into agent contexts. Keep tight — every guardrail
+# is a token tax on every invocation.
+guardrails:
+  - "Never push directly to main — all changes go through a branch and PR."
+  - "Never use --no-verify on git commits."
+  - "New source files must ship with tests; spec, doc, and research files are exempt. Stack is undecided — propose in the spec before writing code."
+  - "Do not introduce framework, renderer, AI-provider, or transport lock-in (per RFP non-goals). Experiments that do must justify the scoped choice."
+  - "Do not invent implementation specifics ahead of the spec — write an open question in the relevant spec instead."
+  - "Prefer local-first, daemon-oriented designs. Cloud-dependent designs must call out the dependency explicitly."
+
+# Docs-only standards — this repo is specs-first (concept/RFP stage).
+# No language/runtime/test_runner is committed. Agents MUST propose a
+# stack inside the relevant spec and get plan-review approval before
+# any code is written. The factory's primary output here is markdown.
+standards:
+  docs:
+    format: markdown
+    lint_config: .markdownlint.json
+    heading_case: sentence-case
+    code_blocks: fenced, language-tagged
+  stack: null  # intentionally unset — propose in the spec, not here
+
+# Curator scoping — issues matching these are skipped by intake.
+curator:
+  ignore_labels: [question, wontfix, duplicate, dependencies, invalid]
+  ignore_authors: ["dependabot[bot]", "renovate[bot]", "github-actions[bot]"]
+  # Minimum hours between curator invocations from adws/adw_sweep.sh. The sweep
+  # checks mtime of .loswf/state/curator.last_run against this value.
+  cadence_hours: 1
+
+# Optional semantic code index (off by default).
+index:
+  enabled: false
+  top_k: 10
+  paths: [src/, specs/, docs/]
+  exclude: ["*.test.ts", "node_modules/", "dist/"]
+
+# Worktree concurrency cap for sweep parallelism.
+sweep:
+  max_concurrent_builds: 3
+  cycle_interval_minutes: 5
+
+# Grounded external review — optional OpenAI Responses API call from the
+# plan-reviewer agent that cross-checks plans against current public
+# knowledge. Gated on OPENAI_API_KEY and the `pyyaml` soft-dep. Silently
+# no-ops if unavailable. See specs/SRS.md §4.11.
+grounded_review:
+  enabled: true
+  model: gpt-5
+  timeout_seconds: 120
+  marker_prefix: "loswf:grounded"
+  budget:
+    feature: 2
+    task: 1
+    bug: 1
+    chore: 0
+    refactor: 1
+    docs: 0

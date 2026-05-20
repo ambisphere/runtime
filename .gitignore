@@ -15,3 +15,5 @@ Thumbs.db
 # Local environment
 .env
 .env.local
+.loswf/state/
+*.bak.*
