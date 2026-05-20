@@ -74,7 +74,7 @@ curator:
   ignore_authors: ["dependabot[bot]", "renovate[bot]", "github-actions[bot]"]
   # Minimum hours between curator invocations from adws/adw_sweep.sh. The sweep
   # checks mtime of .loswf/state/curator.last_run against this value.
-  cadence_hours: 1
+  cadence_hours: 12
 
 # Optional semantic code index (off by default).
 index:
