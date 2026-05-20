@@ -31,3 +31,9 @@ The project is **not** attempting to define or build:
 - A chatbot platform
 
 These are explicitly out of scope. Proposals that drift toward any of them should be reframed or rejected.
+
+## Prior art and inspiration
+
+Persona authoring in this runtime draws on existing ambient-companion projects — chiefly **codex-pets**, the **hatch-pet** authoring skill, and **claude-buddy** — as foundational inspiration. The runtime adopts their separation between *authoring* (a skill that produces a self-contained entity bundle) and *runtime* (a host that consumes the bundle and reduces semantic events into state), but rejects the parts of those projects that violate the principles above: spritesheet-as-truth, hardcoded presentational state vocabularies, single-vendor path or image-generation lock-in, and vendor-identity-derived persona determinism.
+
+See `specs/drafts/persona-prior-art.md` for the full treatment — what to adopt, what to reject, and why.
