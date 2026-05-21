@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./ambisphere-runtime.png" alt="Ambisphere Runtime — semantic events to ambient presence" width="100%" />
+</p>
+
 # Ambisphere Runtime
 
 Ambisphere Runtime is an open ambient runtime for persistent entities, local agents, and operational presence.
