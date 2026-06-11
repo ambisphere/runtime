@@ -1,0 +1,330 @@
+{
+  "schemaVersion": "loswfx.config.v1",
+  "factory": {
+    "scope": "repo",
+    "surfaces": [
+      {
+        "name": "local",
+        "kind": "repo",
+        "ref": "."
+      }
+    ]
+  },
+  "workspace": {
+    "root": ".loswfx"
+  },
+  "ledger": {
+    "path": ".loswfx/state/loswfx.db",
+    "eventsPath": ".loswfx/state/events.jsonl",
+    "receiptsPath": ".loswfx/state/receipts"
+  },
+  "provider": {
+    "kind": "deepseek",
+    "mode": "hosted",
+    "baseUrl": "https://api.deepseek.com",
+    "apiKeyEnv": "DEEPSEEK_API_KEY",
+    "hostedProvider": "deepseek",
+    "model": "deepseek-v4-pro",
+    "timeoutMs": 30000
+  },
+  "runner": {
+    "kind": "local-shell",
+    "environment": "local"
+  },
+  "team": {
+    "scope": "repo",
+    "roles": [
+      {
+        "name": "planner",
+        "provider": "deepseek",
+        "model": "deepseek-v4-pro"
+      },
+      {
+        "name": "builder",
+        "provider": "deepseek",
+        "model": "deepseek-v4-pro"
+      },
+      {
+        "name": "reviewer",
+        "provider": "deepseek",
+        "model": "deepseek-v4-pro"
+      },
+      {
+        "name": "product",
+        "provider": "deepseek",
+        "model": "deepseek-v4-pro"
+      },
+      {
+        "name": "designer",
+        "provider": "deepseek",
+        "model": "deepseek-v4-pro"
+      }
+    ],
+    "reviewGates": [
+      {
+        "name": "operator-review",
+        "required": true,
+        "roles": [
+          "reviewer"
+        ]
+      }
+    ]
+  },
+  "github": {
+    "enabled": false,
+    "dryRun": true,
+    "labels": [
+      "loswfx:intake",
+      "loswfx:product",
+      "loswfx:plan",
+      "loswfx:build",
+      "loswfx:review",
+      "loswfx:done",
+      "loswfx:blocked",
+      "loswfx:needs-attention"
+    ]
+  },
+  "policy": {
+    "schemaVersion": "loswfx.policy.v1",
+    "allowedOperations": [
+      "deterministic-sweep",
+      "shell"
+    ],
+    "deniedOperations": [],
+    "allowedCommands": [
+      "base64",
+      "cat",
+      "find",
+      "gh",
+      "git",
+      "go",
+      "grep",
+      "head",
+      "jq",
+      "ls",
+      "tail",
+      "test",
+      "tr",
+      "wc",
+      "xargs"
+    ],
+    "deniedCommands": [
+      "rm",
+      "sudo"
+    ]
+  },
+  "tools": {
+    "named": null
+  },
+  "capabilities": {
+    "catalog": [
+      {
+        "name": "triage",
+        "description": "Triage a work item with Foreman coordination",
+        "operation": "agent",
+        "adapter": "provider",
+        "roles": [
+          "planner"
+        ],
+        "scopes": [
+          "repo"
+        ]
+      },
+      {
+        "name": "plan",
+        "description": "Produce a structured implementation plan for a work item",
+        "operation": "agent",
+        "adapter": "provider",
+        "roles": [
+          "planner"
+        ],
+        "scopes": [
+          "repo"
+        ]
+      },
+      {
+        "name": "build",
+        "description": "Implement a work item by writing files per the proposed plan",
+        "operation": "agent",
+        "adapter": "provider",
+        "roles": [
+          "builder",
+          "researcher",
+          "designer",
+          "product",
+          "reviewer"
+        ],
+        "scopes": [
+          "repo"
+        ]
+      },
+      {
+        "name": "review",
+        "description": "Review a build's changes and verification outcome; approve or request changes",
+        "operation": "agent",
+        "adapter": "provider",
+        "roles": [
+          "reviewer"
+        ],
+        "scopes": [
+          "repo"
+        ]
+      },
+      {
+        "name": "product",
+        "description": "Produce the product deliverable (PRD/brief or signoff) and a routing verdict",
+        "operation": "agent",
+        "adapter": "provider",
+        "roles": [
+          "product"
+        ],
+        "scopes": [
+          "repo"
+        ]
+      },
+      {
+        "name": "designer",
+        "description": "Produce the design deliverable and a routing verdict",
+        "operation": "agent",
+        "adapter": "provider",
+        "roles": [
+          "designer"
+        ],
+        "scopes": [
+          "repo"
+        ]
+      },
+      {
+        "name": "intake",
+        "description": "Classify a work item's type and run a Fit Check scorecard",
+        "operation": "agent",
+        "adapter": "provider",
+        "roles": [
+          "intake"
+        ],
+        "scopes": [
+          "repo"
+        ]
+      },
+      {
+        "name": "plan-reviewer",
+        "description": "Review a plan and emit the plan-approval gate verdict (approve/reject/block)",
+        "operation": "agent",
+        "adapter": "provider",
+        "roles": [
+          "plan-reviewer"
+        ],
+        "scopes": [
+          "repo"
+        ]
+      },
+      {
+        "name": "decomposer",
+        "description": "Turn an approved plan into sized, independently-buildable child work items",
+        "operation": "agent",
+        "adapter": "provider",
+        "roles": [
+          "decomposer"
+        ],
+        "scopes": [
+          "repo"
+        ]
+      }
+    ]
+  },
+  "retry": {
+    "budget": 2
+  },
+  "verification": {
+    "buildCommand": "",
+    "timeoutMs": 30000
+  },
+  "phases": [
+    {
+      "name": "intake",
+      "final": false
+    },
+    {
+      "name": "product",
+      "final": false
+    },
+    {
+      "name": "plan",
+      "final": false
+    },
+    {
+      "name": "build",
+      "final": false
+    },
+    {
+      "name": "review",
+      "final": false
+    },
+    {
+      "name": "done",
+      "final": true
+    },
+    {
+      "name": "blocked",
+      "final": true
+    },
+    {
+      "name": "needs-attention",
+      "final": true
+    }
+  ],
+  "roles": [
+    {
+      "name": "intake",
+      "phase": "intake"
+    },
+    {
+      "name": "product",
+      "phase": "product"
+    },
+    {
+      "name": "planner",
+      "phase": "plan"
+    },
+    {
+      "name": "plan-reviewer",
+      "phase": "plan"
+    },
+    {
+      "name": "decomposer",
+      "phase": "plan"
+    },
+    {
+      "name": "builder",
+      "phase": "build"
+    },
+    {
+      "name": "reviewer",
+      "phase": "review"
+    },
+    {
+      "name": "researcher",
+      "phase": "plan"
+    },
+    {
+      "name": "designer",
+      "phase": "plan"
+    }
+  ],
+  "receipts": {
+    "schemaVersion": "loswfx.receipt.v1"
+  },
+  "trace": {
+    "defaultFormat": "text"
+  },
+  "skills": {
+    "path": ".loswfx/skills"
+  },
+  "shadow": {},
+  "cost": {},
+  "engagement": {
+    "ownerRepo": "ambisphere/runtime",
+    "approvals": {},
+    "autoShip": true
+  }
+}

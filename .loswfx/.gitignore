@@ -1,0 +1,6 @@
+# Local-only — never commit to the work repo.
+# state/ is the engagement's runtime ledger/DB/projections; its durable home is
+# the connected shadow repo, not this tree (it does NOT regenerate from scratch).
+# config.local.json is this machine's overlay (absolute shadow path, etc.).
+state/
+config.local.json
