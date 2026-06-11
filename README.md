@@ -34,7 +34,16 @@ Potential use cases include:
 
 Ambisphere is intentionally renderer-agnostic, platform-agnostic, and persona-agnostic.
 
-The project begins with exploration, experimentation, and definition of the runtime concepts required for ambient entities to become a reusable interaction layer for future software systems.
+## Architecture
+
+The runtime model is now defined in **[ADR-0001](specs/drafts/ADR-0001-runtime-paradigm-and-language.md)** and a draft design-spec suite. In short:
+
+- **Write side** — semantic events and actions arrive as addressed, capability-gated commands to per-entity mailboxes.
+- **Source of truth** — a per-entity append-only **event log**; pure, deterministic reducers fold it into typed components.
+- **Read side** — components form an **ECS-shaped materialized view** that renderers and the attention bus query. Nothing is written directly; components are derived and rebuildable from the log.
+- **Edges** — renderers subscribe over a one-way observation contract (best language per platform); adapters translate external systems into the semantic event envelope (polyglot). The core daemon targets **Rust**.
+
+The directionality invariant holds throughout: capability/actor semantics only on the write boundary, query semantics only on the read side, the log as the single seam. See the **[design spec index](specs/drafts/DESIGN-SPEC-INDEX.md)** for the full suite.
 
 ## Status
 
