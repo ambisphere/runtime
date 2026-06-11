@@ -1,13 +1,17 @@
-# Engagement onboarding (revised) — ambisphere/runtime
+# Engagement onboarding — ambisphere/runtime
 
-Thanks for the feedback on our first pass. We've revisited the setup and refreshed this pull request to address it.
+Hi — thanks for bringing us in. We've reviewed your project and we're set up and ready to begin.
 
-We've already mapped your codebase — 9 areas across 45 files — so we can hit the ground running.
+We've already mapped your codebase — 51 areas across 104 files — so we can hit the ground running.
 
-- We've re-checked the install and the groundwork for our first round of work.
-- We've taken your notes into account and adjusted accordingly.
-- As before, changes will arrive as small, reviewed pull requests you can approve at your own pace.
+This pull request establishes the foundation for our work together:
 
-Merging this kicks off the engagement. Thanks for the steer — we want the first step to be right.
+- Our toolkit is installed so we can start delivering against your goals.
+- We've read your docs and lined up the first round of work.
+- From here, you'll see changes arrive as small, reviewed pull requests you can approve at your own pace.
+
+Merging this kicks off the engagement. We'll keep you posted at each step, and you can always reach us with questions or a change of direction.
+
+Looking forward to building with you.
 
 — Mara · LOSWF account manager
