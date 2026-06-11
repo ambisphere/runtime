@@ -1,6 +1,6 @@
 # Ambisphere Runtime — Software Requirements Specification (stub)
 
-> This is a placeholder. The runtime is at concept/RFP stage. The first round of factory work will expand individual sections here as decomposed specs land under `specs/`.
+> This top-level SRS remains a stub. The requirements it once anticipated are now being drafted as a dependency-ordered design-spec suite under [`drafts/`](drafts/) — see the [design spec index](drafts/DESIGN-SPEC-INDEX.md) and [ADR-0001](drafts/ADR-0001-runtime-paradigm-and-language.md), which fixes the paradigm, per-tier language, and the canonical invariants the specs conform to. Those drafts clear review and promote to `specs/`; this SRS will then be rewritten as their consolidated index rather than a placeholder.
 
 ## 1. Purpose
 
@@ -10,17 +10,20 @@ This SRS is the long-form companion to [`VISION.md`](VISION.md). Where VISION se
 
 ## 2. Scope
 
-Not yet drafted — see open questions below. At minimum, the SRS will eventually cover:
+The scope below is now drafted across the design-spec suite in [`drafts/`](drafts/). Each area maps to one or more component specs:
 
-- Entity lifecycle and persistence
-- Semantic event ingestion
-- State reduction model
-- Renderer interface
-- Persona projection (optional)
-- Attention routing
-- Human-in-the-loop interaction
-- Local daemon architecture
-- Cross-platform behavior
+- Entity lifecycle and persistence — [daemon architecture](drafts/spec-daemon-architecture.md), [reducers/state/provenance](drafts/spec-reducer-state-component.md)
+- Semantic event ingestion — [event envelope](drafts/spec-event-envelope.md)
+- State reduction model — [reducers, state components and provenance](drafts/spec-reducer-state-component.md)
+- Renderer interface — [renderer observation/projection contract](drafts/spec-renderer-contract.md)
+- Persona projection (optional) — [persona projection](drafts/spec-persona-projection.md)
+- Attention routing — [attention routing and interruption policy](drafts/spec-attention-routing.md)
+- Human-in-the-loop interaction — [action and capability manifest](drafts/spec-action-capability.md) (durable approval-requested state)
+- Local daemon architecture — [daemon architecture and lifecycle](drafts/spec-daemon-architecture.md)
+- Cross-platform behavior — [daemon architecture](drafts/spec-daemon-architecture.md) (packaging/supervision), [implementation language guidance](drafts/implementation-language-guidance.md)
+- Entity identity & relationships — [entity identity and hierarchical graph](drafts/spec-entity-identity-graph.md)
+- Adapters & privacy boundary — [adapter API](drafts/spec-adapter-api.md), [privacy/credential boundary](drafts/spec-privacy-credential-boundary.md)
+- Packaging of all of the above — [entity bundle and package format](drafts/spec-entity-bundle-format.md)
 
 ## 3. Definitions
 
@@ -49,11 +52,13 @@ Strict gating is opt-in: install the tool and the guard activates automatically.
 
 ## 5. Open questions
 
-- What is the minimum viable entity state model?
-- What event shapes does the daemon accept?
-- How are renderers discovered and registered?
-- What persistence guarantees does the daemon offer?
-- How do multiple applications share an entity surface?
-- What is the security model for cross-application event publishing?
+Each of these now has a home in the draft suite (residual unknowns live as open questions inside those specs):
 
-Each of these is expected to become its own spec under `specs/` before any implementation begins.
+- What is the minimum viable entity state model? — [reducers/state](drafts/spec-reducer-state-component.md), [identity](drafts/spec-entity-identity-graph.md)
+- What event shapes does the daemon accept? — [event envelope](drafts/spec-event-envelope.md)
+- How are renderers discovered and registered? — [renderer contract](drafts/spec-renderer-contract.md)
+- What persistence guarantees does the daemon offer? — [daemon architecture](drafts/spec-daemon-architecture.md)
+- How do multiple applications share an entity surface? — [identity](drafts/spec-entity-identity-graph.md), [privacy boundary](drafts/spec-privacy-credential-boundary.md), [action/capability](drafts/spec-action-capability.md)
+- What is the security model for cross-application event publishing? — [action/capability](drafts/spec-action-capability.md), [adapter API](drafts/spec-adapter-api.md), [privacy boundary](drafts/spec-privacy-credential-boundary.md)
+
+These drafts go through factory review before promotion to `specs/` and before any implementation begins.

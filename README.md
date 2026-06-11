@@ -38,6 +38,17 @@ The project begins with exploration, experimentation, and definition of the runt
 
 ## Status
 
-Early concept and RFP stage.
+Design / specification stage.
 
-The project is intentionally avoiding premature implementation constraints, framework lock-in, rendering assumptions, or protocol commitments until the runtime model and interaction philosophy are more fully explored.
+The foundational paradigm and implementation language are decided and recorded in **[ADR-0001](specs/drafts/ADR-0001-runtime-paradigm-and-language.md)** (accepted): a capability-gated, actor-bounded write side over a per-entity append-only event log, with an ECS-shaped read-side materialized view. The core daemon targets Rust; renderers are best-per-platform; adapters are polyglot over a stable event envelope.
+
+A full draft design-spec suite — ADR-0001 plus eleven component specs — is in review under [`specs/drafts/`](specs/drafts/). Start at the **[design spec index](specs/drafts/DESIGN-SPEC-INDEX.md)**.
+
+The project continues to avoid premature implementation constraints beyond those recorded in ADR-0001; drafts clear review before code follows.
+
+## Specs
+
+- [Vision](specs/VISION.md) · [RFP](RFP.md) · [SRS](specs/SRS.md)
+- [ADR-0001 — runtime paradigm + per-tier language](specs/drafts/ADR-0001-runtime-paradigm-and-language.md)
+- [Design spec index](specs/drafts/DESIGN-SPEC-INDEX.md) — the full draft suite in dependency order
+- Guidance & prior art: [paradigm + specs guidance](specs/drafts/runtime-paradigm-and-specs-guidance.md) · [implementation language](specs/drafts/implementation-language-guidance.md) · [actor-model prior art](specs/drafts/actor-model-prior-art.md) · [persona prior art](specs/drafts/persona-prior-art.md)
